@@ -498,6 +498,103 @@
             }
         }
 
+        // ВУЛИЧНИЙ ЛІХТАР (Celestial NOAA Lantern - Redesigned)
+        class AncientStatue {
+            constructor(x) {
+                this.x = x;
+            }
+
+            draw(ctx) {
+                const season = getSeason();
+                const baseY = ctx.canvas.height * 0.78;
+                const parallax = 0.15;
+                const x = (this.x + (mouseX - 0.5) * parallax) * ctx.canvas.width;
+                const y = baseY + (mouseY - 0.5) * parallax * 50;
+
+                const time = Date.now() * 0.001;
+                const flareActive = recentFlare.class !== 'None' && recentFlare.class !== 'C0.0';
+
+                // --- NOAA REACTIVE LIGHT LOGIC ---
+                let lightHue = flareActive ? 0 : (180 + stormLevel * 100); // Red if Flare, Cyan/Blue if Storm
+                let intensity = 0.6 + stormLevel * 0.4 + (flareActive ? 0.4 : 0);
+                let flicker = 0.9 + Math.sin(time * 20) * 0.1 * stormLevel; // Flicker during storms
+
+                ctx.save();
+                ctx.translate(x, y);
+
+                // --- THE LIGHT BEAM (Cone of Light) ---
+                const beamReach = 200 + intensity * 100;
+                const beamWidth = 80 + intensity * 40;
+                const grad = ctx.createLinearGradient(0, -180, 0, 0);
+                grad.addColorStop(0, `hsla(${lightHue}, 100%, 80%, ${0.4 * intensity * flicker})`);
+                grad.addColorStop(0.5, `hsla(${lightHue}, 100%, 60%, ${0.15 * intensity})`);
+                grad.addColorStop(1, `hsla(${lightHue}, 100%, 50%, 0)`);
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.moveTo(0, -180);
+                ctx.lineTo(-beamWidth, 0);
+                ctx.lineTo(beamWidth, 0);
+                ctx.closePath();
+                ctx.fill();
+
+                // --- THE LANTERN POST ---
+                ctx.strokeStyle = '#222';
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(0, -180);
+                ctx.stroke();
+
+                // Decorative Ancient Rims
+                ctx.strokeStyle = `hsla(${lightHue}, 100%, 70%, 0.4)`;
+                ctx.lineWidth = 1;
+                for (let i = 0; i < 8; i++) {
+                    ctx.strokeRect(-4, -i * 22 - 20, 8, 4);
+                }
+
+                // --- THE LANTERN HEAD ---
+                ctx.save();
+                ctx.translate(0, -190);
+
+                // Top Cap
+                ctx.fillStyle = '#111';
+                ctx.beginPath();
+                ctx.moveTo(-25, 10); ctx.lineTo(25, 10);
+                ctx.lineTo(0, -10);
+                ctx.closePath();
+                ctx.fill();
+
+                // Light Core (The Bulb)
+                const glowSize = 15 + intensity * 10;
+                ctx.shadowBlur = glowSize * 2;
+                ctx.shadowColor = `hsla(${lightHue}, 100%, 60%, 1)`;
+                ctx.fillStyle = `hsla(${lightHue}, 100%, 90%, ${flicker})`;
+                ctx.beginPath();
+                ctx.arc(0, 15, 10, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+
+                // Pedestal Base
+                ctx.fillStyle = '#1a1a1a';
+                ctx.fillRect(-20, -8, 40, 16);
+                ctx.strokeStyle = `hsla(${lightHue}, 100%, 50%, 0.5)`;
+                ctx.strokeRect(-20, -8, 40, 16);
+
+                ctx.restore();
+
+                this.screenX = x; this.screenY = y - 190; this.screenR = 100;
+            }
+
+            getInfo() {
+                const flareStr = recentFlare.class !== 'None' ? `Flare: ${recentFlare.class}` : 'Stable';
+                return `<b>Type:</b> Celestial NOAA Lantern<br><b>Light Source:</b> Solar Energy<br><b>Sky Condition:</b> ${flareStr}<br><b>Luminosity:</b> ${(stormLevel * 100).toFixed(0)}%`;
+            }
+        }
+
+        const statue = new AncientStatue(0.75); // Position at 75% width
+
         const trees = {
             back: Array.from({ length: 25 }, () => new CosmicTree(Math.random(), 'back')),
             mid: Array.from({ length: 35 }, () => new CosmicTree(Math.random(), 'mid')),
@@ -510,6 +607,15 @@
         forestFrontC.addEventListener('click', e => {
             const rect = forestFrontC.getBoundingClientRect();
             const tx = e.clientX - rect.left, ty = e.clientY - rect.top;
+
+            // Check Statue first
+            const sDist = Math.sqrt((statue.screenX - tx) ** 2 + (statue.screenY - ty) ** 2);
+            if (sDist < statue.screenR) {
+                document.getElementById('treeDetails').innerHTML = statue.getInfo();
+                document.getElementById('treeInfo').style.display = 'block';
+                return;
+            }
+
             const target = allTrees.find(t => Math.sqrt((t.screenX - tx) ** 2 + (t.screenY - ty) ** 2) < t.screenR);
             if (target) {
                 document.getElementById('treeDetails').innerHTML = target.getInfo();
@@ -567,7 +673,10 @@
             updateParallax(); drawStars(); drawAurora(); drawGeoWaves(mctx, 'mid'); drawGeoWaves(fctx, 'front');
             bctx.clearRect(0, 0, innerWidth, innerHeight); trees.back.forEach(t => { t.grow(); t.draw(bctx); });
             mctx.clearRect(0, 0, innerWidth, innerHeight); trees.mid.forEach(t => { t.grow(); t.draw(mctx); }); drawParticles(mctx, 'mid');
-            fctx.clearRect(0, 0, innerWidth, innerHeight); trees.front.forEach(t => { t.grow(); t.draw(fctx); }); drawParticles(fctx, 'front');
+            fctx.clearRect(0, 0, innerWidth, innerHeight);
+            trees.front.forEach(t => { t.grow(); t.draw(fctx); });
+            statue.draw(fctx); // Draw Statue in Front Layer
+            drawParticles(fctx, 'front');
             spawnParticle(); spawnGeoWave();
             requestAnimationFrame(loop);
         }
