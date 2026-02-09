@@ -149,7 +149,7 @@
         <div id="eternalTimer">Синхронізація часу...</div>
         <br>
         <b>Впливи:</b><br>
-        • SSN + Solar Wind → швидкість росту<br>
+        • SSN + Wind → швидкість росту та коливання<br>
         • Proton Flux → радіаційне отруєння<br>
         • X/M Flares → раптові шоки (пульсація)<br>
         • Kp Index → геомагнітні хвилі + аврора<br>
@@ -407,7 +407,16 @@
                 let y = baseY + (mouseY - 0.5) * parallax * 50;
 
                 let len = (65 + this.cycleMemory * 10) * this.scale;
-                let angle = -Math.PI / 2;
+                
+                // --- NEW SWAY LOGIC (Based on Solar Wind) ---
+                const time = Date.now() * 0.001;
+                const swayFreq = 0.3 + (solarWind / 1500); // Higher wind = faster sway
+                const swayAmp = 0.04 + (solarWind / 3500); // Higher wind = wider sway
+                const treeSway = Math.sin(time * swayFreq + this.phase) * swayAmp;
+                
+                let angle = -Math.PI / 2 + treeSway;
+                // ---------------------------------------------
+
                 let hue = 130 - this.radiationDamage * 90 + this.stormEnergy * 40;
 
                 ctx.strokeStyle = `hsl(${hue}, 80%, ${50 + this.stormEnergy * 20}%)`;
@@ -419,7 +428,10 @@
                     const ny = y + Math.sin(angle) * len;
                     ctx.lineWidth = len * 0.15 * (1 + this.stormEnergy * 0.25);
                     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, ny); ctx.stroke();
-                    angle += Math.sin(i * 1.7 + this.phase + this.stormEnergy * 4) * this.branchAngle;
+                    
+                    // Added time-based oscillation to branches for extra liquid motion
+                    angle += Math.sin(i * 1.7 + this.phase + this.stormEnergy * 4 + time * swayFreq) * this.branchAngle;
+                    
                     x = nx; y = ny; len *= 0.68;
                 }
 
@@ -484,7 +496,7 @@
             // MIDNIGHT BOOST
             if (h === 0 && m === 0 && s === 0) { allTrees.forEach(t => t.cycleMemory += 0.15); }
         }
-        setInterval(updateCycleSystem, 1000); updateCycleSystem();
+            setInterval(updateCycleSystem, 1000); updateCycleSystem();
 
         function loop() {
             updateParallax(); drawStars(); drawAurora(); drawGeoWaves(mctx, 'mid'); drawGeoWaves(fctx, 'front');
