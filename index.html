@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>IBONIRIUM · SPACE FOREST · ETERNAL SYNC EXP-02</title>
+    <title>IBONIRIUM · WILD PARK · ETERNAL SYNC EXP-03</title>
 
     <style>
         * {
@@ -122,9 +122,10 @@
     <canvas id="sensors"></canvas>
 
     <div id="info">
-        <b>IBONIRIUM · SPACE FOREST · EXP‑02</b><br>
-        Phase: <span id="phase">Infinity Growth</span> | Cycle: <span id="cycleNum">1</span><br>
-        Day: <span id="day">–</span> / 13<br>
+        <b>IBONIRIUM · WILD PARK · EXP‑03</b><br>
+        Season: <span id="seasonDisplay" style="text-transform: uppercase; font-weight: bold;">Spring</span><br>
+        Phase: <span id="phase">Wild Growth</span> | Cycle: <span id="cycleNum">1</span><br>
+        Day: <span id="day">0</span> / 13<br>
         <br>
         <b>☀ SOLAR DATA</b><br>
         SSN: <span id="ssn">–</span><br>
@@ -137,7 +138,7 @@
         Bz: <span id="bz">–</span> nT<br>
         Electron Flux: <span id="electron">–</span><br>
         <br>
-        <b>⚡ FOREST STATUS</b><br>
+        <b>⚡ PARK STATUS</b><br>
         Radiation: <span id="rad">Low</span><br>
         Storm Level: <span id="storm">Calm</span><br>
         Aurora: <span id="aurora">Inactive</span><br>
@@ -145,18 +146,17 @@
     </div>
 
     <div id="panel">
-        <b>СТАН ЕКСПЕРИМЕНТУ: ВІЧНИЙ РІСТ</b><br>
+        <b>СТАН ЕКСПЕРИМЕНТУ: ДИКИЙ ПАРК</b><br>
         <div id="eternalTimer">Синхронізація часу...</div>
         <br>
         <b>Впливи:</b><br>
-        • SSN + Wind → швидкість росту та коливання<br>
-        • Proton Flux → радіаційне отруєння<br>
-        • X/M Flares → раптові шоки (пульсація)<br>
-        • Kp Index → геомагнітні хвилі + аврора<br>
-        • Bz South → посилення бурі (деформація)<br>
-        • Electron Flux → енергетичні спалахи (статичні іскри)<br>
+        • SSN + Wind → дикий ріст та агресивне розгалуження<br>
+        • Пори року → зміна кольору, густоти та форми крони<br>
+        • Proton Flux → радіаційне вигорання (осінній ефект)<br>
+        • X/M Flares → енергетичні шоки (дикі стази)<br>
+        • Kp Index → геомагнітні аномалії та світіння<br>
         <br>
-        <b>Статус:</b> Дерева ростуть безперервно від 01.01.2026.
+        <b>Статус:</b> Дика екосистема адаптується до сезонів Землі.
     </div>
 
     <div id="cycle">
@@ -361,6 +361,14 @@
 
         const CYCLE_START = new Date('2026-01-01T00:00:00');
 
+        function getSeason() {
+            const m = new Date().getMonth();
+            if (m >= 2 && m <= 4) return { name: 'Spring', hue: 100, lash: 1.0, wildness: 0.2 };
+            if (m >= 5 && m <= 7) return { name: 'Summer', hue: 140, lash: 1.5, wildness: 0.5 };
+            if (m >= 8 && m <= 10) return { name: 'Autumn', hue: 35, lash: 0.8, wildness: 0.8 };
+            return { name: 'Winter', hue: 200, lash: 0.3, wildness: 0.1 };
+        }
+
         // ДЕРЕВА (Eternal Growth Logic - RESTORED FULL INFLUENCE)
         class CosmicTree {
             constructor(x, layer) {
@@ -373,76 +381,120 @@
                 this.scale = layer === 'back' ? 0.6 : layer === 'mid' ? 0.85 : 1.0;
                 this.opacity = layer === 'back' ? 0.4 : layer === 'mid' ? 0.7 : 1.0;
 
-                // INITIALIZATION BASED ON REAL TIME
+                // INITIALIZATION BASED ON REAL TIME SYNC
                 const now = new Date();
                 const totalDays = (now - CYCLE_START) / 86400000;
-                this.age = 8 + totalDays * 0.25 + (Math.random() * 3);
-                this.cycleMemory = totalDays / 13;
+                this.cycleMemory = Math.floor(totalDays / 13);
+                this.randomOffset = Math.random() * 2;
+
+                // Persistent age: Base from memory + growth in current cycle
+                this.updateInternalAge();
+            }
+
+            updateInternalAge() {
+                const now = new Date();
+                const totalDays = (now - CYCLE_START) / 86400000;
+                const currentCycleDay = totalDays % 13;
+
+                // Weather influence on growth speed
+                const weatherFactor = (0.5 + ssn / 200 + solarWind / 2500);
+
+                // Base age from completed cycles (e.g., 5 per cycle) + current day growth
+                this.cycleMemory = Math.floor(totalDays / 13);
+                this.age = 7 + (this.cycleMemory * 4) + (currentCycleDay * 0.3 * weatherFactor) + this.randomOffset;
             }
 
             grow() {
-                // Growth speed depends on SSN + Solar Wind
-                let speed = 0.003 * (0.3 + ssn / 150 + solarWind / 2000) * timeSpeed;
+                this.updateInternalAge();
 
-                // Multipliers from Flares
-                if (recentFlare.class.startsWith('X')) speed *= 2.2;
-                else if (recentFlare.class.startsWith('M')) speed *= 1.5;
+                // Sync weather-based modifiers (no direct age increment to avoid playback)
+                let flareBoost = 1;
+                if (recentFlare.class.startsWith('X')) flareBoost = 2.2;
+                else if (recentFlare.class.startsWith('M')) flareBoost = 1.5;
+                if (electronFlux > 1500) flareBoost *= 1.3;
 
-                // Multiplier from Electron Flux
-                if (electronFlux > 1500) speed *= 1.3;
-
-                this.age += speed * (1 - this.radiationDamage * 0.5);
-
-                // Radiation damage accumulation over time
-                this.radiationDamage = Math.max(0, Math.min(1, this.radiationDamage + radiationLevel * 0.012 - 0.003));
-
-                // Storm energy accumulation
-                this.stormEnergy = Math.max(0, Math.min(1, this.stormEnergy + stormLevel * 0.02 - 0.01));
+                // Radiation damage and storm energy still accumulate/heal per frame
+                this.radiationDamage = Math.max(0, Math.min(1, this.radiationDamage + (radiationLevel * 0.005) - 0.001));
+                this.stormEnergy = Math.max(0, Math.min(1, this.stormEnergy + (stormLevel * 0.01) - 0.005));
             }
 
             draw(ctx) {
+                const season = getSeason();
                 const baseY = ctx.canvas.height * 0.78;
                 const parallax = this.layer === 'back' ? 0.03 : this.layer === 'mid' ? 0.06 : 0.12;
                 let x = (this.x + (mouseX - 0.5) * parallax) * ctx.canvas.width;
                 let y = baseY + (mouseY - 0.5) * parallax * 50;
 
-                let len = (65 + this.cycleMemory * 10) * this.scale;
-                
-                // --- NEW SWAY LOGIC (Based on Solar Wind) ---
+                // Seasonal and Wildness influencers
+                let len = (60 + this.cycleMemory * 12) * this.scale * (0.8 + season.lash * 0.4);
+
                 const time = Date.now() * 0.001;
-                const swayFreq = 0.3 + (solarWind / 1500); // Higher wind = faster sway
-                const swayAmp = 0.04 + (solarWind / 3500); // Higher wind = wider sway
+                const windMod = (solarWind / 1200);
+                const swayFreq = 0.2 + windMod + season.wildness * 0.5;
+                const swayAmp = 0.03 + windMod * 0.1 + season.wildness * 0.2;
                 const treeSway = Math.sin(time * swayFreq + this.phase) * swayAmp;
-                
+
                 let angle = -Math.PI / 2 + treeSway;
-                // ---------------------------------------------
 
-                let hue = 130 - this.radiationDamage * 90 + this.stormEnergy * 40;
+                // Color mapping: Weather + Season + Radiation
+                let baseHue = season.hue;
+                if (season.name === 'Autumn') baseHue -= this.radiationDamage * 30; // More red if damaged
+                else if (season.name === 'Spring') baseHue += this.stormEnergy * 40; // More cyan if high energy
 
-                ctx.strokeStyle = `hsl(${hue}, 80%, ${50 + this.stormEnergy * 20}%)`;
+                let hue = baseHue - this.radiationDamage * 60 + this.stormEnergy * 30;
+                let sat = 60 + this.stormEnergy * 40 - (season.name === 'Winter' ? 40 : 0);
+                let light = 45 + this.stormEnergy * 20 + (season.name === 'Winter' ? 20 : 0);
+
+                ctx.strokeStyle = `hsl(${hue}, ${sat}%, ${light}%)`;
                 ctx.globalAlpha = this.opacity;
 
-                const segments = Math.floor(Math.min(50, this.age * 1.2));
+                const segments = Math.floor(Math.min(60, this.age * (0.5 + season.lash)));
                 for (let i = 0; i < segments; i++) {
                     const nx = x + Math.cos(angle) * len;
                     const ny = y + Math.sin(angle) * len;
-                    ctx.lineWidth = len * 0.15 * (1 + this.stormEnergy * 0.25);
+
+                    // Thicker roots, thinner tips, wilder distortion
+                    ctx.lineWidth = (len * 0.18) * (1 - i / segments * 0.8) * (1 + this.stormEnergy * 0.4);
                     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, ny); ctx.stroke();
-                    
-                    // Added time-based oscillation to branches for extra liquid motion
-                    angle += Math.sin(i * 1.7 + this.phase + this.stormEnergy * 4 + time * swayFreq) * this.branchAngle;
-                    
-                    x = nx; y = ny; len *= 0.68;
+
+                    // Wild distortion based on season and weather
+                    const distortion = Math.sin(i * 1.5 + this.phase + time * 0.5) * this.branchAngle * (1 + season.wildness);
+                    angle += distortion + (Math.random() - 0.5) * 0.1 * season.wildness;
+
+                    x = nx; y = ny;
+                    len *= (0.68 + (season.name === 'Winter' ? -0.05 : 0.02));
                 }
 
-                const crownSize = (12 + this.radiationDamage * 20 + this.stormEnergy * 15 + this.cycleMemory * 2) * this.scale;
-                ctx.fillStyle = `hsla(${hue + 45}, 100%, 75%, 0.8)`;
-                ctx.beginPath(); ctx.arc(x, y, crownSize, 0, Math.PI * 2); ctx.fill();
-                this.screenX = x; this.screenY = y; this.screenR = crownSize * 2.5;
+                // Crown - ALWAYS VISIBLE WILD SHAPES
+                const crownBase = (18 + this.radiationDamage * 12 + this.stormEnergy * 20 + this.cycleMemory * 3) * this.scale;
+                const crownSize = crownBase * (0.7 + season.lash * 0.5);
+
+                ctx.fillStyle = `hsla(${hue + 20}, ${sat}%, ${light + 10}%, ${0.6 + this.stormEnergy * 0.3})`;
+
+                // Wild Park Crown - Jagged/Organic
+                ctx.beginPath();
+                const points = 5 + Math.floor(this.type * 2);
+                for (let p = 0; p < points * 2; p++) {
+                    // In winter, make crowns more sharp/crystalline
+                    const wildFactor = season.name === 'Winter' ? 0.3 : season.wildness;
+                    const r = (p % 2 === 0) ? crownSize : crownSize * (0.5 + wildFactor * 0.5);
+                    const currAngle = (p / points) * Math.PI + time * 0.2;
+                    const px = x + Math.cos(currAngle) * r;
+                    const py = y + Math.sin(currAngle) * r;
+                    if (p === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.closePath(); ctx.fill();
+
+                // Inner Glow - Dynamic Core
+                ctx.fillStyle = `hsla(${hue + 60}, 100%, 82%, ${0.5 + this.stormEnergy * 0.4})`;
+                ctx.beginPath(); ctx.arc(x, y, crownSize * 0.35, 0, Math.PI * 2); ctx.fill();
+
+                this.screenX = x; this.screenY = y; this.screenR = 40 * this.scale;
             }
 
             getInfo() {
-                return `<b>Age:</b> ${this.age.toFixed(1)}<br><b>Mem:</b> ${this.cycleMemory.toFixed(2)}<br><b>Health:</b> ${((1 - this.radiationDamage) * 100).toFixed(0)}%<br><b>Storm:</b> ${(this.stormEnergy * 100).toFixed(0)}%`;
+                const s = getSeason();
+                return `<b>Wild Type:</b> ${['Gnarly', 'Prickly', 'Spiked', 'Ancient'][this.type]}<br><b>Season:</b> ${s.name}<br><b>Age:</b> ${this.age.toFixed(1)}<br><b>Energy:</b> ${(this.stormEnergy * 100).toFixed(0)}%`;
             }
         }
 
@@ -493,10 +545,23 @@
             document.getElementById('cycleDisplay').textContent = currentCycle;
             document.getElementById('dayDisplay').textContent = currentDay;
 
-            // MIDNIGHT BOOST
-            if (h === 0 && m === 0 && s === 0) { allTrees.forEach(t => t.cycleMemory += 0.15); }
+            // Update Phase Display
+            const phaseEl = document.getElementById('phase');
+            const season = getSeason();
+            document.getElementById('seasonDisplay').textContent = season.name;
+            document.getElementById('seasonDisplay').style.color = season.name === 'Winter' ? '#8cf' : season.name === 'Autumn' ? '#f80' : season.name === 'Spring' ? '#afa' : '#fd0';
+
+            if (currentDay < 9) phaseEl.textContent = "Wild Growth";
+            else if (currentDay < 12) phaseEl.textContent = "Overgrowth";
+            else phaseEl.textContent = "Peak Vitality";
+
+            // SYNC UPDATE
+            if (m === 0 && s === 0) {
+                // Periodic memory sync check
+                allTrees.forEach(t => t.updateInternalAge());
+            }
         }
-            setInterval(updateCycleSystem, 1000); updateCycleSystem();
+        setInterval(updateCycleSystem, 1000); updateCycleSystem();
 
         function loop() {
             updateParallax(); drawStars(); drawAurora(); drawGeoWaves(mctx, 'mid'); drawGeoWaves(fctx, 'front');
