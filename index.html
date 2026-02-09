@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IBONIRIUM · SPACE FOREST · ETERNAL SYNC EXP-02</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+            font-family: monospace;
+            cursor: crosshair;
+        }
+
+        canvas {
+            position: fixed;
+            inset: 0;
+        }
+
+        #sensors {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 180px;
+            pointer-events: none;
+        }
+
+        #info {
+            position: fixed;
+            bottom: 12px;
+            left: 12px;
+            color: #9affc2;
+            font-size: 11px;
+            line-height: 1.5;
+            opacity: 0.9;
+            text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+        }
+
+        #panel {
+            position: fixed;
+            bottom: 12px;
+            right: 12px;
+            max-width: 420px;
+            color: #c7ffd9;
+            font-size: 11px;
+            line-height: 1.5;
+            background: linear-gradient(to left, rgba(0, 0, 0, 0.75), transparent);
+            padding: 14px 18px;
+            border-right: 2px solid #0ff;
+            text-shadow: 0 0 6px rgba(0, 0, 0, 0.9);
+            pointer-events: none;
+        }
+
+        #cycle {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            color: #ffd700;
+            font-size: 13px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 14px;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        #treeInfo {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #0ff;
+            padding: 20px;
+            border-radius: 8px;
+            color: #0ff;
+            max-width: 400px;
+            display: none;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+        }
+
+        #treeInfo h3 {
+            margin-bottom: 10px;
+            color: #0ff;
+        }
+
+        #treeInfo .close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            cursor: pointer;
+            font-size: 20px;
+            color: #f00;
+        }
+
+        #eternalTimer b {
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="stars"></canvas>
+    <canvas id="aurora"></canvas>
+    <canvas id="forestBack"></canvas>
+    <canvas id="forestMid"></canvas>
+    <canvas id="forestFront"></canvas>
+    <canvas id="sensors"></canvas>
+
+    <div id="info">
+        <b>IBONIRIUM · SPACE FOREST · EXP‑02</b><br>
+        Phase: <span id="phase">Infinity Growth</span> | Cycle: <span id="cycleNum">1</span><br>
+        Day: <span id="day">–</span> / 13<br>
+        <br>
+        <b>☀ SOLAR DATA</b><br>
+        SSN: <span id="ssn">–</span><br>
+        Proton Flux: <span id="proton">–</span> pfu<br>
+        Recent Flare: <span id="flare">None</span><br>
+        <br>
+        <b>🌍 GEOMAGNETIC</b><br>
+        Kp Index: <span id="kp">–</span><br>
+        Solar Wind: <span id="wind">–</span> km/s<br>
+        Bz: <span id="bz">–</span> nT<br>
+        Electron Flux: <span id="electron">–</span><br>
+        <br>
+        <b>⚡ FOREST STATUS</b><br>
+        Radiation: <span id="rad">Low</span><br>
+        Storm Level: <span id="storm">Calm</span><br>
+        Aurora: <span id="aurora">Inactive</span><br>
+        Trees: <span id="treeCount">–</span>
+    </div>
+
+    <div id="panel">
+        <b>СТАН ЕКСПЕРИМЕНТУ: ВІЧНИЙ РІСТ</b><br>
+        <div id="eternalTimer">Синхронізація часу...</div>
+        <br>
+        <b>Впливи:</b><br>
+        • SSN + Solar Wind → швидкість росту<br>
+        • Proton Flux → радіаційне отруєння<br>
+        • X/M Flares → раптові шоки (пульсація)<br>
+        • Kp Index → геомагнітні хвилі + аврора<br>
+        • Bz South → посилення бурі (деформація)<br>
+        • Electron Flux → енергетичні спалахи (статичні іскри)<br>
+        <br>
+        <b>Статус:</b> Дерева ростуть безперервно від 01.01.2026.
+    </div>
+
+    <div id="cycle">
+        🔄 CYCLE <span id="cycleDisplay">1</span> | DAY <span id="dayDisplay">0</span>/13
+    </div>
+
+    <div id="treeInfo">
+        <span class="close">✕</span>
+        <h3>🌲 Tree Analysis</h3>
+        <div id="treeDetails"></div>
+    </div>
+
+
+
+    <script>
+        // CANVAS
+        const starC = document.getElementById('stars');
+        const auroraC = document.getElementById('aurora');
+        const forestBackC = document.getElementById('forestBack');
+        const forestMidC = document.getElementById('forestMid');
+        const forestFrontC = document.getElementById('forestFront');
+        const sensC = document.getElementById('sensors');
+
+        const sctx = starC.getContext('2d');
+        const actx = auroraC.getContext('2d');
+        const bctx = forestBackC.getContext('2d');
+        const mctx = forestMidC.getContext('2d');
+        const fctx = forestFrontC.getContext('2d');
+        const ctxs = sensC.getContext('2d');
+
+        function resize() {
+            starC.width = auroraC.width = forestBackC.width = forestMidC.width = forestFrontC.width = sensC.width = innerWidth;
+            starC.height = auroraC.height = forestBackC.height = forestMidC.height = forestFrontC.height = innerHeight;
+            sensC.height = 180;
+        }
+        addEventListener('resize', resize); resize();
+
+        // ПАРАЛАКС
+        let mouseX = 0.5;
+        let mouseY = 0.5;
+        let targetMouseX = 0.5;
+        let targetMouseY = 0.5;
+
+        addEventListener('mousemove', (e) => {
+            targetMouseX = e.clientX / innerWidth;
+            targetMouseY = e.clientY / innerHeight;
+        });
+
+        function updateParallax() {
+            mouseX += (targetMouseX - mouseX) * 0.05;
+            mouseY += (targetMouseY - mouseY) * 0.05;
+        }
+
+        // ШВИДКІСТЬ СИМУЛЯЦІЇ
+        let timeSpeed = 1;
+
+        // ЗІРКИ З ПАРАЛАКСОМ
+        const stars = Array.from({ length: 500 }, () => ({
+            x: Math.random(),
+            y: Math.random(),
+            z: Math.random() * 0.8 + 0.2,
+            twinkle: Math.random() * Math.PI * 2,
+            speed: 0.3 + Math.random() * 0.7,
+            layer: Math.random() < 0.3 ? 'back' : Math.random() < 0.6 ? 'mid' : 'front'
+        }));
+
+        function drawStars() {
+            sctx.clearRect(0, 0, starC.width, starC.height);
+            stars.forEach(s => {
+                s.y += 0.0002 * s.speed * (1 + s.z * 2) * timeSpeed;
+                if (s.y > 1) s.y = -0.01;
+                s.twinkle += 0.03 * timeSpeed;
+                const parallaxFactor = s.layer === 'back' ? 0.02 : s.layer === 'mid' ? 0.05 : 0.1;
+                const px = s.x + (mouseX - 0.5) * parallaxFactor;
+                const py = s.y + (mouseY - 0.5) * parallaxFactor * 0.5;
+                const brightness = 0.3 + s.z * 0.5 + Math.sin(s.twinkle) * 0.2;
+                sctx.globalAlpha = brightness;
+                sctx.fillStyle = "#fff";
+                sctx.beginPath();
+                sctx.arc(px * starC.width, py * starC.height, s.z * 1.8, 0, Math.PI * 2);
+                sctx.fill();
+            });
+        }
+
+        // ДАНІ NOAA - RESTORED FULL API LOGIC
+        let ssn = 0, protonFlux = 0, kpIndex = 0, solarWind = 400, bz = 0, electronFlux = 0;
+        let radiationLevel = 0, stormLevel = 0, auroraActive = false;
+        let recentFlare = { class: 'None', time: '' };
+
+        async function updateSpaceWeather() {
+            try {
+                // Fetch all NOAA data in parallel
+                const [rSSN, rProton, rFlare, rKp, rWind, rElectron] = await Promise.all([
+                    fetch('https://services.swpc.noaa.gov/json/solar-cycle/predicted-solar-cycle.json').then(r => r.json()).catch(() => null),
+                    fetch('https://services.swpc.noaa.gov/json/goes/primary/integral-protons-plot-6-hour.json').then(r => r.json()).catch(() => null),
+                    fetch('https://services.swpc.noaa.gov/json/goes/primary/xray-flares-7-day.json').then(r => r.json()).catch(() => null),
+                    fetch('https://services.swpc.noaa.gov/json/planetary_k_index_1m.json').then(r => r.json()).catch(() => null),
+                    fetch('https://services.swpc.noaa.gov/json/rtsw/rtsw_wind_1m.json').then(r => r.json()).catch(() => null),
+                    fetch('https://services.swpc.noaa.gov/json/goes/primary/integral-electrons-plot-6-hour.json').then(r => r.json()).catch(() => null)
+                ]);
+
+                // SSN
+                if (rSSN) ssn = rSSN[rSSN.length - 1]?.predicted_ssn || 15;
+
+                // Proton Flux
+                if (rProton) protonFlux = parseFloat(rProton[rProton.length - 1]?.flux) || 1;
+
+                // Kp Index
+                if (rKp) kpIndex = parseFloat(rKp[rKp.length - 1]?.kp_index) || 0;
+
+                // Wind & Bz
+                if (rWind && rWind.length > 0) {
+                    const latestW = rWind[rWind.length - 1];
+                    solarWind = parseFloat(latestW.wind_speed) || 400;
+                    bz = parseFloat(latestW.bz) || 0;
+                }
+
+                // Electron Flux
+                if (rElectron) electronFlux = parseFloat(rElectron[rElectron.length - 1]?.flux) || 100;
+
+                // Flares
+                if (rFlare && rFlare.length > 0) {
+                    const flare = rFlare[rFlare.length - 1];
+                    recentFlare = {
+                        class: flare?.current_class || flare?.max_class || 'None',
+                        time: flare?.peak_time || flare?.time_tag || ''
+                    };
+                }
+
+                // COMPLEX INFLUENCE MAPPING
+                let flareBoost = 0;
+                if (recentFlare.class.startsWith('X')) flareBoost = 0.9;
+                else if (recentFlare.class.startsWith('M')) flareBoost = 0.5;
+                else if (recentFlare.class.startsWith('C')) flareBoost = 0.15;
+
+                // Radiation depends on Protons + Flares
+                radiationLevel = Math.min(1, (Math.log10(protonFlux + 1) / 5) + flareBoost * 0.7);
+
+                // Storm depends on Kp + Negative Bz
+                const bzFactor = bz < 0 ? Math.abs(bz) / 20 : 0;
+                stormLevel = Math.min(1, (kpIndex / 9) + bzFactor * 0.3);
+
+                auroraActive = kpIndex >= 5 || (kpIndex >= 3 && bz < -5);
+
+                // UI Updates
+                document.getElementById('ssn').textContent = ssn.toFixed(1);
+                document.getElementById('proton').textContent = protonFlux.toFixed(2);
+                document.getElementById('kp').textContent = kpIndex.toFixed(1);
+                document.getElementById('wind').textContent = solarWind.toFixed(0);
+                document.getElementById('bz').textContent = bz.toFixed(1);
+                document.getElementById('electron').textContent = electronFlux.toFixed(0);
+                document.getElementById('flare').textContent = recentFlare.class;
+
+                document.getElementById('rad').textContent = radiationLevel < 0.2 ? 'Low' : radiationLevel < 0.5 ? 'Moderate' : radiationLevel < 0.8 ? 'High' : 'Severe';
+                document.getElementById('storm').textContent = stormLevel < 0.2 ? 'Calm' : stormLevel < 0.5 ? 'Active' : stormLevel < 0.8 ? 'Storm' : 'Severe Storm';
+                document.getElementById('aurora').textContent = auroraActive ? 'Active' : 'Inactive';
+            } catch (e) {
+                console.warn("NOAA API Sync Error, using fallback.");
+                ssn = 15; protonFlux = 1; kpIndex = 1; solarWind = 400; bz = 0;
+            }
+        }
+        updateSpaceWeather(); setInterval(updateSpaceWeather, 600000);
+
+        // АВРОРА
+        const auroraWaves = Array.from({ length: 8 }, (_, i) => ({ phase: Math.random() * Math.PI * 2, speed: 0.0008 + i * 0.0002, amplitude: 40 + i * 15 }));
+        function drawAurora() {
+            actx.clearRect(0, 0, auroraC.width, auroraC.height);
+            if (!auroraActive && stormLevel < 0.3) return;
+            const intensity = Math.max(stormLevel, auroraActive ? 0.6 : 0);
+            auroraWaves.forEach((wave, idx) => {
+                wave.phase += wave.speed * timeSpeed;
+                const gradient = actx.createLinearGradient(0, 0, 0, auroraC.height * 0.5);
+                gradient.addColorStop(0, `hsla(140, 80%, 60%, ${intensity * 0.15})`);
+                gradient.addColorStop(0.5, `hsla(200, 90%, 50%, ${intensity * 0.25})`);
+                gradient.addColorStop(1, "transparent");
+                actx.fillStyle = gradient;
+                actx.beginPath(); actx.moveTo(0, auroraC.height * 0.3);
+                for (let x = 0; x <= auroraC.width; x += 15) {
+                    const y = auroraC.height * 0.3 + Math.sin(x * 0.01 + wave.phase) * wave.amplitude * intensity;
+                    actx.lineTo(x, y);
+                }
+                actx.lineTo(auroraC.width, 0); actx.lineTo(0, 0); actx.fill();
+            });
+        }
+
+        // ГЕОМАГНІТНІ ХВИЛІ
+        const geoWaves = [];
+        function spawnGeoWave() {
+            if (stormLevel > 0.4 && Math.random() < stormLevel * 0.02) {
+                geoWaves.push({ x: Math.random() * innerWidth, y: forestMidC.height * 0.7, radius: 10, alpha: 0.8, hue: 180 + Math.random() * 60, layer: Math.random() < 0.5 ? 'mid' : 'front' });
+            }
+        }
+        function drawGeoWaves(ctx, layer) {
+            geoWaves.forEach((w, i) => {
+                if (w.layer !== layer) return;
+                w.radius += 2.5; w.alpha -= 0.01;
+                if (w.alpha <= 0) { geoWaves.splice(i, 1); return; }
+                ctx.strokeStyle = `hsla(${w.hue}, 90%, 60%, ${w.alpha})`; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2); ctx.stroke();
+            });
+        }
+
+        const CYCLE_START = new Date('2026-01-01T00:00:00');
+
+        // ДЕРЕВА (Eternal Growth Logic - RESTORED FULL INFLUENCE)
+        class CosmicTree {
+            constructor(x, layer) {
+                this.x = x; this.layer = layer;
+                this.type = Math.floor(Math.random() * 4);
+                this.phase = Math.random() * Math.PI * 2;
+                this.radiationDamage = 0;
+                this.stormEnergy = 0;
+                this.branchAngle = [0.55, 0.7, 0.45, 0.8][this.type];
+                this.scale = layer === 'back' ? 0.6 : layer === 'mid' ? 0.85 : 1.0;
+                this.opacity = layer === 'back' ? 0.4 : layer === 'mid' ? 0.7 : 1.0;
+
+                // INITIALIZATION BASED ON REAL TIME
+                const now = new Date();
+                const totalDays = (now - CYCLE_START) / 86400000;
+                this.age = 8 + totalDays * 0.25 + (Math.random() * 3);
+                this.cycleMemory = totalDays / 13;
+            }
+
+            grow() {
+                // Growth speed depends on SSN + Solar Wind
+                let speed = 0.003 * (0.3 + ssn / 150 + solarWind / 2000) * timeSpeed;
+
+                // Multipliers from Flares
+                if (recentFlare.class.startsWith('X')) speed *= 2.2;
+                else if (recentFlare.class.startsWith('M')) speed *= 1.5;
+
+                // Multiplier from Electron Flux
+                if (electronFlux > 1500) speed *= 1.3;
+
+                this.age += speed * (1 - this.radiationDamage * 0.5);
+
+                // Radiation damage accumulation over time
+                this.radiationDamage = Math.max(0, Math.min(1, this.radiationDamage + radiationLevel * 0.012 - 0.003));
+
+                // Storm energy accumulation
+                this.stormEnergy = Math.max(0, Math.min(1, this.stormEnergy + stormLevel * 0.02 - 0.01));
+            }
+
+            draw(ctx) {
+                const baseY = ctx.canvas.height * 0.78;
+                const parallax = this.layer === 'back' ? 0.03 : this.layer === 'mid' ? 0.06 : 0.12;
+                let x = (this.x + (mouseX - 0.5) * parallax) * ctx.canvas.width;
+                let y = baseY + (mouseY - 0.5) * parallax * 50;
+
+                let len = (65 + this.cycleMemory * 10) * this.scale;
+                let angle = -Math.PI / 2;
+                let hue = 130 - this.radiationDamage * 90 + this.stormEnergy * 40;
+
+                ctx.strokeStyle = `hsl(${hue}, 80%, ${50 + this.stormEnergy * 20}%)`;
+                ctx.globalAlpha = this.opacity;
+
+                const segments = Math.floor(Math.min(50, this.age * 1.2));
+                for (let i = 0; i < segments; i++) {
+                    const nx = x + Math.cos(angle) * len;
+                    const ny = y + Math.sin(angle) * len;
+                    ctx.lineWidth = len * 0.15 * (1 + this.stormEnergy * 0.25);
+                    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, ny); ctx.stroke();
+                    angle += Math.sin(i * 1.7 + this.phase + this.stormEnergy * 4) * this.branchAngle;
+                    x = nx; y = ny; len *= 0.68;
+                }
+
+                const crownSize = (12 + this.radiationDamage * 20 + this.stormEnergy * 15 + this.cycleMemory * 2) * this.scale;
+                ctx.fillStyle = `hsla(${hue + 45}, 100%, 75%, 0.8)`;
+                ctx.beginPath(); ctx.arc(x, y, crownSize, 0, Math.PI * 2); ctx.fill();
+                this.screenX = x; this.screenY = y; this.screenR = crownSize * 2.5;
+            }
+
+            getInfo() {
+                return `<b>Age:</b> ${this.age.toFixed(1)}<br><b>Mem:</b> ${this.cycleMemory.toFixed(2)}<br><b>Health:</b> ${((1 - this.radiationDamage) * 100).toFixed(0)}%<br><b>Storm:</b> ${(this.stormEnergy * 100).toFixed(0)}%`;
+            }
+        }
+
+        const trees = {
+            back: Array.from({ length: 25 }, () => new CosmicTree(Math.random(), 'back')),
+            mid: Array.from({ length: 35 }, () => new CosmicTree(Math.random(), 'mid')),
+            front: Array.from({ length: 25 }, () => new CosmicTree(Math.random(), 'front'))
+        };
+        const allTrees = [...trees.back, ...trees.mid, ...trees.front];
+
+        document.getElementById('treeCount').textContent = allTrees.length;
+
+        forestFrontC.addEventListener('click', e => {
+            const rect = forestFrontC.getBoundingClientRect();
+            const tx = e.clientX - rect.left, ty = e.clientY - rect.top;
+            const target = allTrees.find(t => Math.sqrt((t.screenX - tx) ** 2 + (t.screenY - ty) ** 2) < t.screenR);
+            if (target) {
+                document.getElementById('treeDetails').innerHTML = target.getInfo();
+                document.getElementById('treeInfo').style.display = 'block';
+            }
+        });
+        document.querySelector('.close').onclick = () => document.getElementById('treeInfo').style.display = 'none';
+
+        const particles = [];
+        function spawnParticle() { if (Math.random() < radiationLevel * 0.15) particles.push({ x: Math.random() * innerWidth, y: -20, vy: 2 + Math.random() * 5, layer: Math.random() < 0.5 ? 'mid' : 'front' }); }
+        function drawParticles(ctx, layer) {
+            particles.forEach((p, i) => {
+                if (p.layer !== layer) return;
+                p.y += p.vy; if (p.y > ctx.canvas.height) particles.splice(i, 1);
+                ctx.fillStyle = "#0ff"; ctx.globalAlpha = 0.6; ctx.fillRect(p.x, p.y, 2, 10);
+            });
+        }
+
+        function updateCycleSystem() {
+            const now = new Date();
+            const totalMs = now - CYCLE_START;
+            const totalDays = totalMs / 86400000;
+            const daysInt = Math.floor(totalDays);
+            const currentCycle = Math.floor(daysInt / 13) + 1;
+            const currentDay = daysInt % 13;
+            const h = Math.floor((totalMs / 3600000) % 24);
+            const m = Math.floor((totalMs / 60000) % 60);
+            const s = Math.floor((totalMs / 1000) % 60);
+
+            document.getElementById('eternalTimer').innerHTML = `<b>Час буття:</b> ${daysInt}д ${h}г ${m}хв ${s}с`;
+            document.getElementById('day').textContent = currentDay;
+            document.getElementById('cycleNum').textContent = currentCycle;
+            document.getElementById('cycleDisplay').textContent = currentCycle;
+            document.getElementById('dayDisplay').textContent = currentDay;
+
+            // MIDNIGHT BOOST
+            if (h === 0 && m === 0 && s === 0) { allTrees.forEach(t => t.cycleMemory += 0.15); }
+        }
+        setInterval(updateCycleSystem, 1000); updateCycleSystem();
+
+        function loop() {
+            updateParallax(); drawStars(); drawAurora(); drawGeoWaves(mctx, 'mid'); drawGeoWaves(fctx, 'front');
+            bctx.clearRect(0, 0, innerWidth, innerHeight); trees.back.forEach(t => { t.grow(); t.draw(bctx); });
+            mctx.clearRect(0, 0, innerWidth, innerHeight); trees.mid.forEach(t => { t.grow(); t.draw(mctx); }); drawParticles(mctx, 'mid');
+            fctx.clearRect(0, 0, innerWidth, innerHeight); trees.front.forEach(t => { t.grow(); t.draw(fctx); }); drawParticles(fctx, 'front');
+            spawnParticle(); spawnGeoWave();
+            requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
+</body>
+
+</html>
